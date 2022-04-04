@@ -9,9 +9,9 @@ function dy = numDiff(func, x, Method)
 % Syntax:  dy = numDiff(@poly, x, Method)
 %
 % Inputs:
-%    @poly - function to calculate the derivative of
+%    @poly - (function_handle) function to calculate the derivative of
 %    x - value to calculate the derivative at
-%    Method - Method used in the numerical differentiation calculation. Must
+%    Method - (string) Method used in the numerical differentiation calculation. Must
 %    be either "Forwards", "Backwards" or "Central"
 %
 % Outputs:

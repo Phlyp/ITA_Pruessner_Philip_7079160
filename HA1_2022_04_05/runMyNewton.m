@@ -13,11 +13,9 @@
 %    None
 %
 % Outputs:
-%    root1 - execute myNewton using the function myFunc and its manually 
-%    derived function dmyFunc
-%    root2 - execute myNewton using only the function myFunc
+%    none
 %
-% Other m-files required: myFunc.m, dmyFunc.m, myNewton.m, numDiff.m
+% Other m-files required: myPoly.m, dmyPoly.m, myNewton.m, numDiff.m
 % Subfunctions: none
 % MAT-files required: none
 %
@@ -29,8 +27,8 @@
 
 %------------- BEGIN CODE --------------
 %% Mit gegebener Ableitung
-root1 = myNewton(@myPoly, @dmyPoly);
+[root1, abortFlag1, i1] = myNewton('function', @myPoly, 'derivative', @dmyPoly, 'startValue', 5, 'livePlot', 'on');
 
 %% Mit numerischem Differenzieren
-root2 = myNewton(@myPoly);
+[root2, abortFlag2, i2] = myNewton('function', @myPoly, 'startValue', 5, 'livePlot', 'on');
 %------------- END OF CODE -------------

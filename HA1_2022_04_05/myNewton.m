@@ -1,23 +1,37 @@
-function xZero = myNewton(varargin)
+function [xZero, abortFlag, iters] = myNewton(varargin)
 %% FUNCTION_NAME - myNewton
 %
 % Description: This function uses the Newton-Rhapson method to calculate
 % the root of a function. It requires a function to be passed as an
 % argument and optionally accepts the manual derivative of that function. If
 % no derivative is given, it asks for a method using a dialogue box to 
-% calculate the numerical differentiation and then uses that process instead
+% calculate the numerical differentiation and then uses that process
+% instead. The function also has the ability to plot the values of x and
+% f(x) during the course of the algorithm.
 %
 % Assumptions: None
 %
-% Syntax:  xZero = myNewton(@poly, optional: @dPoly)
+% Syntax:  [xZero, abortFlag, iters] = myNewton('function', @poly, 'derivative' 
+%   @dPoly, 'startValue', xStart, 'maxIter', maxIter, 'feps', feps, 'xeps', xeps,
+%   'livePlot', livePlot)
 %
 % Inputs:
-%    @poly - function to calculate the root of
-%    optional: @dPoly - optional parameter to manually define the derivative
+%    @poly - (function_handle) function to calculate the root of
+%    @dPoly (optional) - (function_handle) optional parameter to manually define the derivative
 %    of poly
+%    xStart - (double) Value to start the Newton-Rhapson algorithm at
+%    maxIter - (double) abort criteria: maximum Number of Iterations for the algorithm
+%    feps - (double) abort criteria: stop algorithm if the function value is smaller
+%    than feps
+%    xeps - (double) abort criteria: stop algorithm if the difference between the
+%    old and the new x location is smaller than xeps
+%    livePlot - ('on' or 'off') determines wether to plot the values of
+%    f(x) and x
 %
 % Outputs:
 %    xZero - root of the function poly
+%    abortFlag - shows which abort criteria was used to abort the function
+%    iters - shows the number of iterations completed before the abort
 %
 % Other m-files required: numDiff.m, myPoly.m, dmyPoly.m
 % Subfunctions: numDiff.m
@@ -30,31 +44,111 @@ function xZero = myNewton(varargin)
 % $Date: April 03, 2022
 
 %------------- BEGIN CODE --------------
-    
-    xStart = 5;
-    maxIter = 50;
-    xOld = xStart;
-
-    func = varargin{1};
-    if nargin > 1
-        dfunc = varargin{2};
-        for i = 1:maxIter
-            f = func(xOld);
-            df = dfunc(xOld);
-            xNew = xOld - (f/df);
-            xOld = xNew;
-        end
-    else 
-        method = questdlg("Choose a method to differentiate", "Diff. Method", ...
-            "Forwards", "Backwards", "Central", "Forwards");
-        for i = 1:maxIter
-            f = func(xOld);
-            df = numDiff(func, xOld, method);
-            xNew = xOld - (f/df);
-            xOld = xNew;
-        end
+%% do the varargin
+for i = 1:nargin
+    if strcmp(varargin{i},'function')
+        func = varargin{i+1};
+    elseif strcmp(varargin{i},'derivative')
+        useNumDiff = false;
+        dfunc = varargin{i+1};
+    elseif strcmp(varargin{i},'startValue')
+        x0 = varargin{i+1};
+    elseif strcmp(varargin{i},'maxIter')
+        maxIter = varargin{i+1};
+    elseif strcmp(varargin{i},'feps')
+        feps = varargin{i+1};
+    elseif strcmp(varargin{i},'xeps')
+        xeps = varargin{i+1};
+    elseif strcmp(varargin{i},'livePlot')
+        livePlot = varargin{i+1};   
     end
+end
 
-    xZero = xOld;
+%% check for necessary parameters
+if ~exist('func','var')
+    error('No valid function');
+end
+
+if ~exist('dfunc','var')
+    useNumDiff = true;
+    methodVar = questdlg("Choose a method to differentiate", "Diff. Method", ...
+        "Forwards", "Backwards", "Central", "Forwards");
+end
+    
+if ~exist('x0','var')
+    x0 = 0;
+    disp(['Using default startvalue: x0 = ',num2str(x0)]);
+end
+
+if ~exist('maxIter','var')
+    maxIter = 50;
+    disp(['Using default maximum iterations: maxIter = ',num2str(maxIter)]);
+end
+
+if ~exist('feps','var')
+    feps = 1e-6;
+    disp(['Using default Feps: feps = ',num2str(feps)]);
+end
+
+if ~exist('xeps','var')
+    xeps = 1e-6;
+    disp(['Using default Xeps: xeps = ',num2str(xeps)]);
+end
+
+if ~exist('livePlot','var')
+    livePlot = 'off';
+    disp(['Using default live Plot: livePlot = ','off']);
+end
+
+%% start of algorithm
+if strcmp(livePlot,'on')
+   h = figure('Name','Newton visualization');
+   ax1 = subplot(2,1,1);
+   plot(ax1,0,x0,'bo');
+   ylabel('xValue');
+   hold on;
+   grid on;
+   xlim('auto')
+   ylim('auto')
+   ax2 = subplot(2,1,2);
+   semilogy(ax2,0,func(x0),'rx');
+   xlabel('Number of iterations')
+   ylabel('Function value');
+   hold on;
+   grid on;
+   xlim('auto')
+   ylim('auto')
+end
+xOld = x0;
+abortFlag = 'maxIter';
+for i = 1:maxIter
+    f = func(xOld);
+    if abs(f) < feps
+        abortFlag = 'feps';
+        break;
+    end
+    if useNumDiff == false
+        df = dfunc(xOld);
+    else
+        df = numDiff(func, xOld, methodVar);
+    end
+    if df == 0
+        abortFlag = 'df = 0';
+        break;
+    end
+    xNew = xOld - f/df;
+    if abs(xNew-xOld) < xeps
+        abortFlag = 'xeps';
+        break;
+    end
+    xOld = xNew;
+    if strcmp(livePlot,'on')
+       plot(ax1,i,xNew,'bo');
+       semilogy(ax2,i,func(xNew),'rx');
+       pause(0.05);
+    end
+end
+iters = i;
+xZero = xNew;
 %------------- END OF CODE -------------
-end 
+end
